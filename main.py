@@ -7,7 +7,9 @@ import click
 import gui
 
 
-async def read_msgs(host: str, port: int, queue: asyncio.Queue, history: asyncio.Queue) -> None:
+async def read_msgs(
+    host: str, port: int, queue: asyncio.Queue, history_queue: asyncio.Queue,
+) -> None:
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
 
@@ -16,7 +18,7 @@ async def read_msgs(host: str, port: int, queue: asyncio.Queue, history: asyncio
             if not line:
                 break
             queue.put_nowait(line.decode())
-            history.put_nowait(line.decode())
+            history_queue.put_nowait(line.decode())
     finally:
         writer.close()
 
@@ -29,6 +31,14 @@ async def write_history(history: asyncio.Queue, logfile: str):
             await history_file.write(f'[{formatted_time}] {message}')
 
 
+async def load_history(logfile: str, queue: asyncio.Queue):
+    template = '### CHAT HISTORY ###\n\n{}\n### END HISTORY ###\n\n'
+    async with aiofiles.open(logfile) as history_file:
+        history = await history_file.read()
+        if history:
+            queue.put_nowait(template.format(history))
+
+
 async def start_chat(host: str, port: int, output: str) -> None:
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
@@ -36,11 +46,12 @@ async def start_chat(host: str, port: int, output: str) -> None:
     history_queue = asyncio.Queue()
 
     asyncio.gather(
+        load_history(logfile=output, queue=messages_queue),
         read_msgs(
             host=host,
             port=port,
             queue=messages_queue,
-            history=history_queue,
+            history_queue=history_queue,
         ),
         write_history(history=history_queue, logfile=output),
     )
