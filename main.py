@@ -39,6 +39,11 @@ async def load_history(logfile: str, queue: asyncio.Queue):
             queue.put_nowait(template.format(history))
 
 
+async def send_msgs(host: str, port: int, queue: asyncio.Queue):
+    while True:
+        message = await queue.get()
+
+
 async def start_chat(host: str, port: int, output: str) -> None:
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
@@ -54,6 +59,7 @@ async def start_chat(host: str, port: int, output: str) -> None:
             history_queue=history_queue,
         ),
         write_history(history=history_queue, logfile=output),
+        send_msgs(host=host, port=port, queue=sending_queue),
     )
 
     await gui.draw(messages_queue, sending_queue, status_updates_queue)
