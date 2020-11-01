@@ -2,3 +2,6 @@
 .venv/
 *.pyc
 __pycache__/
+
+# chat history
+chat-log.txt
