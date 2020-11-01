@@ -12,6 +12,10 @@ import gui
 ASYNC_DELAY = 2
 
 
+def sanitize_text(text: str) -> str:
+    return text.replace('\n', '')
+
+
 async def read_msgs(
     reader: StreamReader, queue: asyncio.Queue, history_queue: asyncio.Queue,
 ) -> None:
@@ -39,12 +43,19 @@ async def load_history(logfile: str, queue: asyncio.Queue):
             queue.put_nowait(template.format(history))
 
 
-async def send_msgs(host: str, port: int, queue: asyncio.Queue) -> None:
+async def send_msgs(host: str, port: int, queue: asyncio.Queue, writer: StreamWriter) -> None:
     while True:
         message = await queue.get()
+        await submit_message(message=message, writer=writer)
 
 
-async def authorize_chat_user(token: str, writer: StreamWriter) -> None:
+async def submit_message(message: str, writer: StreamWriter) -> StreamWriter:
+    sanitazed_message = sanitize_text(message)
+    writer.write(f'{sanitazed_message}\n\n'.encode())
+    await writer.drain()
+
+
+async def authorize_chat_user(token: str, writer: StreamWriter) -> StreamWriter:
     writer.write(f'{token}\n'.encode())
     await writer.drain()
 
@@ -54,6 +65,7 @@ async def handle_user(
     port: int = 5050,
     token: str = None,
     messages_queue: asyncio.Queue = None,
+    sending_queue: asyncio.Queue = None,
 ) -> None:
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
@@ -66,6 +78,7 @@ async def handle_user(
             message = f'Выполнена авторизация. Пользователь {user}.\n\n'
             messages_queue.put_nowait(message)
             await asyncio.sleep(ASYNC_DELAY)
+            await send_msgs(host=host, port=port, queue=sending_queue, writer=writer),
     finally:
         writer.close()
 
@@ -80,7 +93,12 @@ async def start_chat(host: str, port: int, output: str, token: str) -> None:
         reader, writer = await asyncio.open_connection(host=host, port=port)
 
         asyncio.gather(
-            handle_user(host=host, token=token, messages_queue=messages_queue),
+            handle_user(
+                host=host,
+                token=token,
+                messages_queue=messages_queue,
+                sending_queue=sending_queue,
+            ),
             load_history(logfile=output, queue=messages_queue),
             read_msgs(
                 reader=reader,
@@ -88,7 +106,6 @@ async def start_chat(host: str, port: int, output: str, token: str) -> None:
                 history_queue=history_queue,
             ),
             write_history(history=history_queue, logfile=output),
-            send_msgs(host=host, port=port, queue=sending_queue),
         )
         await gui.draw(messages_queue, sending_queue, status_updates_queue)
     finally:
