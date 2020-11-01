@@ -1,23 +1,31 @@
 import asyncio
-import time
 
 import click
 
 import gui
 
 
-async def generate_msgs(queue: asyncio.Queue) -> None:
-    while True:
-        queue.put_nowait(f'Ping {round(time.time())}')
-        await asyncio.sleep(1)
+async def read_msgs(host: str, port: int, queue: asyncio.Queue) -> None:
+    try:
+        reader, writer = await asyncio.open_connection(host=host, port=port)
+
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            queue.put_nowait(line.decode())
+    finally:
+        writer.close()
 
 
-async def start_chat() -> None:
+async def start_chat(host: str, port: int) -> None:
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
     status_updates_queue = asyncio.Queue()
 
-    asyncio.gather(generate_msgs(messages_queue))
+    asyncio.gather(
+        read_msgs(host=host, port=port, queue=messages_queue),
+    )
 
     await gui.draw(messages_queue, sending_queue, status_updates_queue)
 
@@ -45,7 +53,7 @@ async def start_chat() -> None:
     help='Token to authenticate'
 )
 def main(host: str, port: int, token: str):
-    asyncio.run(start_chat())
+    asyncio.run(start_chat(host=host, port=port))
 
 
 if __name__ == "__main__":
