@@ -51,8 +51,7 @@ async def send_msgs(host: str, port: int, queue: asyncio.Queue, writer: StreamWr
 
 
 async def submit_message(message: str, writer: StreamWriter) -> StreamWriter:
-    sanitazed_message = sanitize_text(message)
-    writer.write(f'{sanitazed_message}\n\n'.encode())
+    writer.write(f'{message}\n\n'.encode())
     await writer.drain()
 
 
