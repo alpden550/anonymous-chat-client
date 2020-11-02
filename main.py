@@ -1,13 +1,14 @@
 import asyncio
 import json
+import sys
 from asyncio.streams import StreamReader, StreamWriter
 from datetime import datetime
 
 import aiofiles
 import click
+from loguru import logger
 
 import gui
-
 
 ASYNC_DELAY = 2
 
@@ -74,6 +75,9 @@ async def handle_user(
         if token:
             await authorize_chat_user(token=token, writer=writer)
             authorize_data = await reader.readline()
+            if not json.loads(authorize_data):
+                logger.error('Invalid token, please check or register a new user.')
+                sys.exit(1)
             user = json.loads(authorize_data)['nickname']
             message = f'Выполнена авторизация. Пользователь {user}.\n\n'
             messages_queue.put_nowait(message)
