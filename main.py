@@ -8,15 +8,16 @@ from tkinter import messagebox
 import aiofiles
 import click
 
-import gui
 import exceptions
+import gui
 
 ASYNC_DELAY = 2
 
 
-async def read_msgs(host: str, port: int, messages: Queue, history: Queue):
+async def read_msgs(host: str, port: int, messages: Queue, history: Queue, statusses: Queue):
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
+        statusses.put_nowait(gui.ReadConnectionStateChanged.ESTABLISHED)
         while True:
             line = await reader.readline()
             messages.put_nowait(line.decode())
@@ -51,9 +52,11 @@ async def handle_user(
         token: str = None,
         messages: Queue = None,
         sends: Queue = None,
+        statuses: Queue = None,
 ):
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
+        statuses.put_nowait(gui.SendingConnectionStateChanged.ESTABLISHED)
         await reader.readline()
 
         if token:
@@ -66,6 +69,8 @@ async def handle_user(
 
             user = json.loads(authorize_data)['nickname']
             message = f'Выполнена авторизация. Пользователь {user}.\n\n'
+            event = gui.NicknameReceived(user)
+            statuses.put_nowait(event)
             messages.put_nowait(message)
             await asyncio.sleep(ASYNC_DELAY)
             await send_msgs(queue=sends, writer=writer)
@@ -85,8 +90,16 @@ async def start_chat(host: str, port: int, token: str, logfile: str):
     history_queue = asyncio.Queue()
 
     await asyncio.gather(
-        handle_user(host=host, token=token, messages=messages_queue, sends=sending_queue),
-        read_msgs(host=host, port=port, messages=messages_queue, history=history_queue),
+        handle_user(
+            host=host,
+            token=token,
+            messages=messages_queue,
+            sends=sending_queue,
+            statuses=status_updates_queue,
+        ),
+        read_msgs(
+            host=host, port=port, messages=messages_queue, history=history_queue, statusses=status_updates_queue,
+        ),
         save_history(history=history_queue, output=logfile),
 
         gui.draw(messages_queue, sending_queue, status_updates_queue),
