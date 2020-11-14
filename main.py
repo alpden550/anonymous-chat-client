@@ -1,72 +1,57 @@
 import asyncio
 import json
-from asyncio.streams import StreamReader, StreamWriter
+from asyncio import Queue
+from asyncio.streams import StreamWriter
 from datetime import datetime
+from tkinter import messagebox
 
 import aiofiles
 import click
 
 import gui
-
+import exceptions
 
 ASYNC_DELAY = 2
 
 
-def sanitize_text(text: str) -> str:
-    return text.replace('\n', '')
+async def read_msgs(host: str, port: int, messages: Queue, history: Queue):
+    try:
+        reader, writer = await asyncio.open_connection(host=host, port=port)
+        while True:
+            line = await reader.readline()
+            messages.put_nowait(line.decode())
+            history.put_nowait(line.decode())
+            await asyncio.sleep(1)
+    finally:
+        writer.close()
 
 
-async def read_msgs(
-    reader: StreamReader, queue: asyncio.Queue, history_queue: asyncio.Queue,
-) -> None:
+async def send_msgs(queue: Queue, writer: StreamWriter):
     while True:
-        line = await reader.readline()
-        if not line:
-            break
-        queue.put_nowait(line.decode())
-        history_queue.put_nowait(line.decode())
+        msg = await queue.get()
+        await submit_message(message=msg, writer=writer)
 
 
-async def write_history(history: asyncio.Queue, logfile: str):
-    while True:
-        formatted_time = datetime.now().strftime("%d.%m.%Y %H:%M")
-        async with aiofiles.open(logfile, 'a') as history_file:
+async def submit_message(message: str, writer: StreamWriter):
+    writer.write(f'{message}\n\n'.encode())
+    await writer.drain()
+
+
+async def save_history(history: Queue, output: str):
+    async with aiofiles.open(output, 'a') as chat_log:
+        while True:
+            formatted_time = datetime.now().strftime("%d.%m.%Y %H:%M")
             message = await history.get()
-            await history_file.write(f'[{formatted_time}] {message}')
-
-
-async def load_history(logfile: str, queue: asyncio.Queue):
-    template = '### CHAT HISTORY ###\n\n{}\n### END HISTORY ###\n\n'
-    async with aiofiles.open(logfile) as history_file:
-        history = await history_file.read()
-        if history:
-            queue.put_nowait(template.format(history))
-
-
-async def send_msgs(host: str, port: int, queue: asyncio.Queue, writer: StreamWriter) -> None:
-    while True:
-        message = await queue.get()
-        await submit_message(message=message, writer=writer)
-
-
-async def submit_message(message: str, writer: StreamWriter) -> StreamWriter:
-    sanitazed_message = sanitize_text(message)
-    writer.write(f'{sanitazed_message}\n\n'.encode())
-    await writer.drain()
-
-
-async def authorize_chat_user(token: str, writer: StreamWriter) -> StreamWriter:
-    writer.write(f'{token}\n'.encode())
-    await writer.drain()
+            await chat_log.write(f'[{formatted_time}] {message}')
 
 
 async def handle_user(
-    host: str,
-    port: int = 5050,
-    token: str = None,
-    messages_queue: asyncio.Queue = None,
-    sending_queue: asyncio.Queue = None,
-) -> None:
+        host: str,
+        port: int = 5050,
+        token: str = None,
+        messages: Queue = None,
+        sends: Queue = None,
+):
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
         await reader.readline()
@@ -74,42 +59,38 @@ async def handle_user(
         if token:
             await authorize_chat_user(token=token, writer=writer)
             authorize_data = await reader.readline()
+
+            if not json.loads(authorize_data):
+                messagebox.showerror("Неверный токен", "Проверьте токен, сервер его не узнал.")
+                raise exceptions.InvalidToken
+
             user = json.loads(authorize_data)['nickname']
             message = f'Выполнена авторизация. Пользователь {user}.\n\n'
-            messages_queue.put_nowait(message)
+            messages.put_nowait(message)
             await asyncio.sleep(ASYNC_DELAY)
-            await send_msgs(host=host, port=port, queue=sending_queue, writer=writer),
+            await send_msgs(queue=sends, writer=writer)
     finally:
         writer.close()
 
 
-async def start_chat(host: str, port: int, output: str, token: str) -> None:
+async def authorize_chat_user(token: str, writer: StreamWriter):
+    writer.write(f'{token}\n'.encode())
+    await writer.drain()
+
+
+async def start_chat(host: str, port: int, token: str, logfile: str):
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
     status_updates_queue = asyncio.Queue()
     history_queue = asyncio.Queue()
 
-    try:
-        reader, writer = await asyncio.open_connection(host=host, port=port)
+    await asyncio.gather(
+        handle_user(host=host, token=token, messages=messages_queue, sends=sending_queue),
+        read_msgs(host=host, port=port, messages=messages_queue, history=history_queue),
+        save_history(history=history_queue, output=logfile),
 
-        asyncio.gather(
-            handle_user(
-                host=host,
-                token=token,
-                messages_queue=messages_queue,
-                sending_queue=sending_queue,
-            ),
-            load_history(logfile=output, queue=messages_queue),
-            read_msgs(
-                reader=reader,
-                queue=messages_queue,
-                history_queue=history_queue,
-            ),
-            write_history(history=history_queue, logfile=output),
-        )
-        await gui.draw(messages_queue, sending_queue, status_updates_queue)
-    finally:
-        writer.close()
+        gui.draw(messages_queue, sending_queue, status_updates_queue),
+    )
 
 
 @click.command()
@@ -143,8 +124,8 @@ async def start_chat(host: str, port: int, output: str, token: str) -> None:
     show_default=True,
 )
 def main(host: str, port: int, token: str, output: str):
-    asyncio.run(start_chat(host=host, port=port, output=output, token=token))
+    asyncio.run(start_chat(host, port, token, output))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
