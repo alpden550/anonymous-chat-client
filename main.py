@@ -4,7 +4,7 @@ from asyncio import Queue
 from asyncio.streams import StreamWriter
 from datetime import datetime
 from tkinter import messagebox
-
+from async_timeout import timeout
 import aiofiles
 import click
 from loguru import logger
@@ -13,7 +13,7 @@ import exceptions
 import gui
 
 ASYNC_DELAY = 2
-TIMEOUT_WATCH = 10
+TIMEOUT_WATCH = 30
 
 
 async def read_msgs(host: str, port: int, messages: Queue, history: Queue, statuses: Queue, watchdog: Queue):
@@ -93,8 +93,13 @@ async def authorize_chat_user(token: str, writer: StreamWriter, watchdog: Queue)
 
 async def watch_for_connection(queue: Queue):
     while True:
-        msg = await queue.get()
-        logger.info(f'Connection is alive. {msg}')
+        try:
+            async with timeout(1) as cm:
+                msg = await queue.get()
+                logger.info(f'Connection is alive. {msg}')
+        except asyncio.TimeoutError:
+            if cm.expired:
+                logger.warning(f'{datetime.now().timestamp()} timeout is elapsed')
 
 
 async def start_chat(host: str, port: int, token: str, logfile: str):
