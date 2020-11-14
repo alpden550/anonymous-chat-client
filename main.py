@@ -13,12 +13,13 @@ import exceptions
 import gui
 
 ASYNC_DELAY = 2
+TIMEOUT_WATCH = 10
 
 
-async def read_msgs(host: str, port: int, messages: Queue, history: Queue, statusses: Queue, watchdog: Queue):
+async def read_msgs(host: str, port: int, messages: Queue, history: Queue, statuses: Queue, watchdog: Queue):
     try:
         reader, writer = await asyncio.open_connection(host=host, port=port)
-        statusses.put_nowait(gui.ReadConnectionStateChanged.ESTABLISHED)
+        statuses.put_nowait(gui.ReadConnectionStateChanged.ESTABLISHED)
         while True:
             line = await reader.readline()
             messages.put_nowait(line.decode())
@@ -117,7 +118,7 @@ async def start_chat(host: str, port: int, token: str, logfile: str):
             port=port,
             messages=messages_queue,
             history=history_queue,
-            statusses=status_updates_queue,
+            statuses=status_updates_queue,
             watchdog=watchdog_queue
         ),
         save_history(history=history_queue, output=logfile),
