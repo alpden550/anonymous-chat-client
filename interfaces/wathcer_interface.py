@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Queue
 from dataclasses import dataclass
 
@@ -9,5 +10,11 @@ class ChatWatcherInterface:
     watcher: Queue
 
     async def watch_for_connection(self):
-        msg = await self.watcher.get()
-        logger.info(msg)
+        while True:
+            msg = await self.watcher.get()
+            logger.info(msg)
+
+    async def main_func(self):
+        await asyncio.gather(
+            self.watch_for_connection(),
+        )
