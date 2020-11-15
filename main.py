@@ -11,18 +11,11 @@ async def start_chat(host: str, port: int, output: str, token: str):
     sending_queue = asyncio.Queue()
     status_updates_queue = asyncio.Queue()
 
-    await asyncio.gather(
-        gui.draw(messages_queue, sending_queue, status_updates_queue),
-        handle_connection(
-            host=host,
-            port=port,
-            messages=messages_queue,
-            sends=sending_queue,
-            statuses=status_updates_queue,
-            output=output,
-            token=token,
-        ),
-    )
+    async with create_task_group() as tg:
+        await tg.spawn(gui.draw, messages_queue, sending_queue, status_updates_queue)
+        await tg.spawn(
+            handle_connection, host, port, messages_queue, sending_queue, status_updates_queue, output, token,
+        )
 
 
 async def handle_connection(
