@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import Queue
 from dataclasses import dataclass
+from time import time
 
 from loguru import logger
 
@@ -12,7 +13,7 @@ class ChatWatcherInterface:
     async def watch_for_connection(self):
         while True:
             msg = await self.watcher.get()
-            logger.info(msg)
+            logger.info(f'{[int(time())]} Connection is alive. {msg}')
 
     async def main_func(self):
         await asyncio.gather(
