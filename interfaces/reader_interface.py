@@ -4,6 +4,7 @@ from asyncio import Queue
 from dataclasses import dataclass
 
 import aiofiles
+from anyio import create_task_group
 
 from interfaces import gui
 
@@ -41,7 +42,6 @@ class ChatReaderInterface:
                 await output.write(f'[{formatted_time}] {msg}')
 
     async def main_func(self):
-        await asyncio.gather(
-            self.open_connection(),
-            self.save_msgs(),
-        )
+        async with create_task_group() as tg:
+            await tg.spawn(self.open_connection)
+            await tg.spawn(self.save_msgs)
