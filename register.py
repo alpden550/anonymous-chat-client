@@ -1,5 +1,6 @@
 import asyncio
 import json
+import tkinter
 from asyncio import StreamReader, StreamWriter
 
 import aiofiles
@@ -29,6 +30,39 @@ async def register_user(username: str, reader: StreamReader, writer: StreamWrite
         await env.write(f'token={token}\n')
 
 
+def draw(host: str, port: int):
+    root = tkinter.Tk()
+    root.title('Регистрация в чате майнкрафтера')
+
+    f_name = tkinter.Frame(root)
+
+    name_label = tkinter.Label(f_name, text='Имя:')
+    name_entry = tkinter.Entry(f_name, width=70)
+    token_label = tkinter.Label(width=100, height=10, text='Введите имя или никнейм, и нажмите зарегистрироваться')
+
+    reg_button = tkinter.Button(text="Зарегистрироваться",
+                                width=50,
+                                height=4,
+                                highlightbackground="lightblue",
+                                )
+    reg_button['command'] = lambda: handle_entered_name(name_entry, host, port, root)
+
+    f_name.pack()
+    name_label.pack(side=tkinter.LEFT, padx=10, pady=10)
+    name_entry.pack(side=tkinter.LEFT, padx=10, pady=10)
+    reg_button.pack(padx=10, pady=10)
+    token_label.pack(padx=10, pady=10)
+
+    root.mainloop()
+
+
+def handle_entered_name(name_entry, host, port, root):
+    username = name_entry.get()
+    if username:
+        asyncio.run(handle_register(host=host, port=port, username=username))
+        root.quit()
+
+
 @click.command()
 @click.option(
     '-h',
@@ -45,16 +79,8 @@ async def register_user(username: str, reader: StreamReader, writer: StreamWrite
     help='Port for connected host',
     show_default=True,
 )
-@click.option(
-    '-u',
-    '--username',
-    default='',
-    type=str,
-    help='Username',
-    show_default=True,
-)
-def main(host: str, port: int, username: str):
-    asyncio.run(handle_register(host=host, port=port, username=username))
+def main(host: str, port: int):
+    draw(host=host, port=port)
 
 
 if __name__ == '__main__':
