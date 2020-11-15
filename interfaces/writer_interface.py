@@ -17,6 +17,7 @@ class ChatWriterInterface:
     messages: Queue = None
     sends: Queue = None
     statuses: Queue = None
+    watchers: Queue = None
     token: str = None
 
     async def open_connection(self):
@@ -35,6 +36,7 @@ class ChatWriterInterface:
         while True:
             msg = await self.sends.get()
             writer.write(f'{msg}\n\n'.encode())
+            self.watchers.put_nowait('Message send.')
             await writer.drain()
 
     async def handle_user(self, reader, writer):
@@ -49,6 +51,7 @@ class ChatWriterInterface:
 
             self.messages.put_nowait(msg)
             self.statuses.put_nowait(gui.NicknameReceived(user))
+            self.watchers.put_nowait('Authorization done')
 
     @staticmethod
     async def authorize_chat_user(token: str, writer: StreamWriter):
