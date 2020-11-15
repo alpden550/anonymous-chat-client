@@ -22,7 +22,12 @@ async def start_chat(host: str, port: int, output: str, token: str):
         logfile=output,
     )
     writer = ChatWriterInterface(
-        host=host, messages=messages_queue, sends=sending_queue, statuses=status_updates_queue, token=token,
+        host=host,
+        messages=messages_queue,
+        sends=sending_queue,
+        statuses=status_updates_queue,
+        watchers=watching_queue,
+        token=token,
     )
     watcher = ChatWatcherInterface(watcher=watching_queue)
 
