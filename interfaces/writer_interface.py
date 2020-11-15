@@ -4,6 +4,8 @@ from asyncio import Queue, StreamWriter
 from dataclasses import dataclass
 from tkinter import messagebox
 
+from anyio import create_task_group
+
 import exceptions
 from interfaces import gui
 
@@ -59,6 +61,5 @@ class ChatWriterInterface:
         await writer.drain()
 
     async def main_func(self):
-        await asyncio.gather(
-            self.open_connection(),
-        )
+        async with create_task_group() as tg:
+            await tg.spawn(self.open_connection)
