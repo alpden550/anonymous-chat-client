@@ -88,7 +88,10 @@ async def handle_connection(
     help='Token to authenticate'
 )
 def main(host: str, port: int, output: str, token: str):
-    asyncio.run(start_chat(host=host, port=port, output=output, token=token))
+    try:
+        asyncio.run(start_chat(host=host, port=port, output=output, token=token))
+    except (KeyboardInterrupt, gui.TkAppClosed):
+        pass
 
 
 if __name__ == '__main__':
