@@ -1,8 +1,8 @@
 import asyncio
 import datetime
-from time import time
 from asyncio import Queue
 from dataclasses import dataclass
+from time import time
 
 import aiofiles
 
