@@ -1,6 +1,7 @@
 import asyncio
 
 import click
+from anyio import create_task_group
 
 from interfaces import ChatReaderInterface, gui, ChatWriterInterface, ChatWatcherInterface
 
@@ -9,34 +10,58 @@ async def start_chat(host: str, port: int, output: str, token: str):
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
     status_updates_queue = asyncio.Queue()
-    history_queue = asyncio.Queue()
-    watching_queue = asyncio.Queue()
-
-    reader = ChatReaderInterface(
-        host=host,
-        port=port,
-        messages=messages_queue,
-        histories=history_queue,
-        statuses=status_updates_queue,
-        watchers=watching_queue,
-        logfile=output,
-    )
-    writer = ChatWriterInterface(
-        host=host,
-        messages=messages_queue,
-        sends=sending_queue,
-        statuses=status_updates_queue,
-        watchers=watching_queue,
-        token=token,
-    )
-    watcher = ChatWatcherInterface(watcher=watching_queue)
 
     await asyncio.gather(
-        reader.main_func(),
-        writer.main_func(),
-        watcher.main_func(),
         gui.draw(messages_queue, sending_queue, status_updates_queue),
+        handle_connection(
+            host=host,
+            port=port,
+            messages=messages_queue,
+            sends=sending_queue,
+            statuses=status_updates_queue,
+            output=output,
+            token=token,
+        ),
     )
+
+
+async def handle_connection(
+        host: str,
+        port: int,
+        messages: asyncio.Queue,
+        sends: asyncio.Queue,
+        statuses: asyncio.Queue,
+        output: str,
+        token: str = None,
+):
+    while True:
+        history_queue = asyncio.Queue()
+        watching_queue = asyncio.Queue()
+        try:
+            reader = ChatReaderInterface(
+                host=host,
+                port=port,
+                messages=messages,
+                histories=history_queue,
+                statuses=statuses,
+                watchers=watching_queue,
+                logfile=output,
+            )
+            writer = ChatWriterInterface(
+                host=host,
+                messages=messages,
+                sends=sends,
+                statuses=statuses,
+                watchers=watching_queue,
+                token=token,
+            )
+            watcher = ChatWatcherInterface(watcher=watching_queue)
+            async with create_task_group() as tg:
+                await tg.spawn(reader.main_func)
+                await tg.spawn(writer.main_func)
+                await tg.spawn(watcher.main_func)
+        except ConnectionError:
+            pass
 
 
 @click.command()
