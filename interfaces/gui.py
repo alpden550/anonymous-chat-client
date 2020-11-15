@@ -90,7 +90,7 @@ def create_status_panel(root_frame):
 
     nickname_label = tk.Label(connections_frame, height=1, fg='grey', font='arial 10', anchor='w')
     nickname_label.pack(side="top", fill=tk.X)
-
+    
     status_read_label = tk.Label(
         connections_frame,
         height=1,
