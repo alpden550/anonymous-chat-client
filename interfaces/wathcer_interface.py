@@ -1,8 +1,10 @@
 import asyncio
 from asyncio import Queue
 from dataclasses import dataclass
-from time import time
 from socket import gaierror
+from time import time
+
+from anyio import create_task_group
 from async_timeout import timeout
 from loguru import logger
 
@@ -46,7 +48,6 @@ class ChatWatcherInterface:
                 raise ConnectionError
 
     async def main_func(self):
-        await asyncio.gather(
-            self.watch_for_server(),
-            self.watch_for_connection(),
-        )
+        async with create_task_group() as tg:
+            await tg.spawn(self.watch_for_server)
+            await tg.spawn(self.watch_for_connection)
