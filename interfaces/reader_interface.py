@@ -2,7 +2,6 @@ import asyncio
 import datetime
 from asyncio import Queue
 from dataclasses import dataclass
-from time import time
 
 import aiofiles
 
@@ -32,7 +31,7 @@ class ChatReaderInterface:
             line = await reader.readline()
             self.messages.put_nowait(line.decode())
             self.histories.put_nowait(line.decode())
-            self.watchers.put_nowait(f'{[int(time())]} Connection is alive. New message in chat')
+            self.watchers.put_nowait('New message in chat')
 
     async def save_msgs(self):
         formatted_time = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
