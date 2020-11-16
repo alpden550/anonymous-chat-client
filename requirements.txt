@@ -1,0 +1,6 @@
+aiofiles==0.6.0
+anyio==2.0.2
+async-timeout==3.0.1
+click==7.1.2
+environs==9.2.0
+loguru==0.5.3
