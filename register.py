@@ -34,24 +34,31 @@ def draw(host: str, port: int):
     root = tkinter.Tk()
     root.title('Регистрация в чате майнкрафтера')
 
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    width, height = 500, 400
+    x = screen_width / 2 - width / 2
+    y = screen_height / 2 - height / 2
+    root.geometry('%dx%d+%d+%d' % (width, height, x, y))
+
     f_name = tkinter.Frame(root)
 
     name_label = tkinter.Label(f_name, text='Имя:')
     name_entry = tkinter.Entry(f_name, width=70)
-    token_label = tkinter.Label(width=100, height=10, text='Введите имя или никнейм, и нажмите зарегистрироваться')
+    token_label = tkinter.Label(width=70, height=10, text='Введите имя или никнейм, и нажмите зарегистрироваться')
 
     reg_button = tkinter.Button(text="Зарегистрироваться",
-                                width=50,
+                                width=150,
                                 height=4,
                                 highlightbackground="lightblue",
                                 )
     reg_button['command'] = lambda: handle_entered_name(name_entry, host, port, root)
 
     f_name.pack()
-    name_label.pack(side=tkinter.LEFT, padx=10, pady=10)
-    name_entry.pack(side=tkinter.LEFT, padx=10, pady=10)
-    reg_button.pack(padx=10, pady=10)
-    token_label.pack(padx=10, pady=10)
+    name_label.pack(side=tkinter.TOP, padx=100, pady=30)
+    name_entry.pack(side=tkinter.TOP, padx=100, pady=10)
+    reg_button.pack(side=tkinter.TOP, padx=100, pady=10)
+    token_label.pack(side=tkinter.BOTTOM, padx=10, pady=5)
 
     root.mainloop()
 
