@@ -30,3 +30,6 @@ And after it start chatting:
 ```bash
 python main.py
 ```
+
+To know available options to run scripts, add `--help`.
+
