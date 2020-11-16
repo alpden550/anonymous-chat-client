@@ -1,7 +1,9 @@
 import asyncio
+import sys
 
 import click
 from anyio import create_task_group
+from environs import Env
 
 from interfaces import ChatReaderInterface, gui, ChatWriterInterface, ChatWatcherInterface
 
@@ -81,13 +83,12 @@ async def handle_connection(
     help='Path to file to write chat history',
     show_default=True,
 )
-@click.option(
-    '-t',
-    '--token',
-    required=False,
-    help='Token to authenticate'
-)
-def main(host: str, port: int, output: str, token: str):
+def main(host: str, port: int, output: str, token=None):
+    token = env('TOKEN', None)
+    if token is None:
+        click.echo('Token not found, please register user first.')
+        sys.exit(1)
+
     try:
         asyncio.run(start_chat(host=host, port=port, output=output, token=token))
     except (KeyboardInterrupt, gui.TkAppClosed):
@@ -95,4 +96,7 @@ def main(host: str, port: int, output: str, token: str):
 
 
 if __name__ == '__main__':
+    env = Env()
+    env.read_env()
+
     main()
