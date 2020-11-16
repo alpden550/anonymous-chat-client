@@ -27,7 +27,7 @@ async def register_user(username: str, reader: StreamReader, writer: StreamWrite
     token = json.loads(user_data.decode()).get('account_hash')
 
     async with aiofiles.open('.env', 'w') as env:
-        await env.write(f'token={token}\n')
+        await env.write(f'TOKEN={token}\n')
 
 
 def draw(host: str, port: int):
