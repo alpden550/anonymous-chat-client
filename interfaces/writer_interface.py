@@ -23,16 +23,15 @@ class ChatWriterInterface:
     token: str = None
 
     async def open_connection(self):
-        try:
-            reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
-            self.statuses.put_nowait(gui.SendingConnectionStateChanged.ESTABLISHED)
+        reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
+        self.statuses.put_nowait(gui.SendingConnectionStateChanged.ESTABLISHED)
 
-            await reader.readline()
-            await self.handle_user(reader=reader, writer=writer)
-            await self.send_msgs(writer=writer)
+        await reader.readline()
+        await self.handle_user(reader=reader, writer=writer)
+        await self.send_msgs(writer=writer)
 
-        finally:
-            writer.close()
+        writer.close()
+        await writer.wait_closed()
 
     async def send_msgs(self, writer: StreamWriter):
         while True:

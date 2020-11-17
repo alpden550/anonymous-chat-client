@@ -8,13 +8,12 @@ import click
 
 
 async def handle_register(host: str, port: int, username: str):
-    try:
-        reader, writer = await asyncio.open_connection(host=host, port=port)
-        await reader.readline()
-        await register_user(username=username, reader=reader, writer=writer)
+    reader, writer = await asyncio.open_connection(host=host, port=port)
+    await reader.readline()
+    await register_user(username=username, reader=reader, writer=writer)
 
-    finally:
-        writer.close()
+    writer.close()
+    await writer.wait_closed()
 
 
 async def register_user(username: str, reader: StreamReader, writer: StreamWriter):

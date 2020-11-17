@@ -19,11 +19,11 @@ class ChatWatcherInterface:
     port: int
 
     async def watch_for_server(self):
-        try:
-            reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
-            await self.ping_pong(reader=reader, writer=writer)
-        finally:
-            writer.close()
+        reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
+        await self.ping_pong(reader=reader, writer=writer)
+
+        writer.close()
+        await writer.wait_closed()
 
     @staticmethod
     async def ping_pong(reader, writer):
