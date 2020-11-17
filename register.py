@@ -10,7 +10,8 @@ import click
 async def handle_register(host: str, port: int, username: str):
     reader, writer = await asyncio.open_connection(host=host, port=port)
     await reader.readline()
-    await register_user(username=username, reader=reader, writer=writer)
+    token = await register_user(username=username, reader=reader, writer=writer)
+    await save_user_token(token=token)
 
     writer.close()
     await writer.wait_closed()
@@ -24,7 +25,7 @@ async def register_user(username: str, reader: StreamReader, writer: StreamWrite
     user_data = await reader.readline()
     await writer.drain()
     token = json.loads(user_data.decode()).get('account_hash')
-    await save_user_token(token=token)
+    return token
 
 
 async def save_user_token(token):
