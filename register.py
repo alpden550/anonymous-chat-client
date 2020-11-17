@@ -25,7 +25,10 @@ async def register_user(username: str, reader: StreamReader, writer: StreamWrite
     user_data = await reader.readline()
     await writer.drain()
     token = json.loads(user_data.decode()).get('account_hash')
+    await save_user_token(token=token)
 
+
+async def save_user_token(token):
     async with aiofiles.open('.env', 'w') as env:
         await env.write(f'TOKEN={token}\n')
 
