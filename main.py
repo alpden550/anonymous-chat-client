@@ -83,7 +83,9 @@ async def handle_connection(
     help='Path to file to write chat history',
     show_default=True,
 )
-def main(host: str, port: int, output: str, token=None):
+def main(host: str, port: int, output: str):
+    env = Env()
+    env.read_env()
     token = env('TOKEN', None)
     if token is None:
         click.echo('Token not found, please register user first.')
@@ -96,7 +98,4 @@ def main(host: str, port: int, output: str, token=None):
 
 
 if __name__ == '__main__':
-    env = Env()
-    env.read_env()
-
     main()
