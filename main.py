@@ -4,7 +4,7 @@ import sys
 import click
 from anyio import create_task_group
 from environs import Env
-
+from contextlib import suppress
 from interfaces import ChatReaderInterface, gui, ChatWriterInterface, ChatWatcherInterface
 
 
@@ -32,7 +32,8 @@ async def handle_connection(
     while True:
         history_queue = asyncio.Queue()
         watching_queue = asyncio.Queue()
-        try:
+
+        with suppress(ConnectionError):
             reader = ChatReaderInterface(
                 host=host,
                 port=port,
@@ -55,8 +56,6 @@ async def handle_connection(
                 await tg.spawn(reader.main_func)
                 await tg.spawn(writer.main_func)
                 await tg.spawn(watcher.main_func)
-        except ConnectionError:
-            pass
 
 
 @click.command()
@@ -91,10 +90,8 @@ def main(host: str, port: int, output: str):
         click.echo('Token not found, please register user first.')
         sys.exit(1)
 
-    try:
+    with suppress(KeyboardInterrupt, gui.TkAppClosed):
         asyncio.run(start_chat(host=host, port=port, output=output, token=token))
-    except (KeyboardInterrupt, gui.TkAppClosed):
-        pass
 
 
 if __name__ == '__main__':
