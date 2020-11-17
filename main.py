@@ -53,9 +53,9 @@ async def handle_connection(
             )
             watcher = ChatWatcherInterface(watcher=watching_queue, host=host, port=port)
             async with create_task_group() as tg:
-                await tg.spawn(reader.main_func)
-                await tg.spawn(writer.main_func)
-                await tg.spawn(watcher.main_func)
+                await tg.spawn(reader.run)
+                await tg.spawn(writer.run)
+                await tg.spawn(watcher.run)
 
 
 @click.command()

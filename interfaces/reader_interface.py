@@ -41,7 +41,7 @@ class ChatReaderInterface:
                 msg = await self.histories.get()
                 await output.write(f'[{formatted_time}] {msg}')
 
-    async def main_func(self):
+    async def run(self):
         async with create_task_group() as tg:
             await tg.spawn(self.open_connection)
             await tg.spawn(self.save_msgs)

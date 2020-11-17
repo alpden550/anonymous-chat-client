@@ -59,6 +59,6 @@ class ChatWriterInterface:
         writer.write(f'{token}\n'.encode())
         await writer.drain()
 
-    async def main_func(self):
+    async def run(self):
         async with create_task_group() as tg:
             await tg.spawn(self.open_connection)

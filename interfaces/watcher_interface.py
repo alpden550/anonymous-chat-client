@@ -47,7 +47,7 @@ class ChatWatcherInterface:
                 logger.error(f'{[int(time())]} timeout is elapsed.')
                 raise ConnectionError
 
-    async def main_func(self):
+    async def run(self):
         async with create_task_group() as tg:
             await tg.spawn(self.watch_for_server)
             await tg.spawn(self.watch_for_connection)
