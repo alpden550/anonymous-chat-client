@@ -1,10 +1,12 @@
 import asyncio
 import sys
+from contextlib import suppress
+from socket import gaierror
 
 import click
 from anyio import create_task_group
 from environs import Env
-from contextlib import suppress
+
 from interfaces import ChatReaderInterface, gui, ChatWriterInterface, ChatWatcherInterface
 
 
@@ -33,7 +35,7 @@ async def handle_connection(
         history_queue = asyncio.Queue()
         watching_queue = asyncio.Queue()
 
-        with suppress(ConnectionError):
+        with suppress(ConnectionError, gaierror):
             reader = ChatReaderInterface(
                 host=host,
                 port=port,
