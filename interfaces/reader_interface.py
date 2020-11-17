@@ -20,12 +20,13 @@ class ChatReaderInterface:
     logfile: str = None
 
     async def open_connection(self):
-        reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
-        self.statuses.put_nowait(gui.ReadConnectionStateChanged.ESTABLISHED)
-        await self.read_msgs(reader)
-
-        writer.close()
-        await writer.wait_closed()
+        try:
+            reader, writer = await asyncio.open_connection(host=self.host, port=self.port)
+            self.statuses.put_nowait(gui.ReadConnectionStateChanged.ESTABLISHED)
+            await self.read_msgs(reader)
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
     async def read_msgs(self, reader):
         while True:
